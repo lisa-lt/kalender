@@ -51,6 +51,11 @@ class MultiDayOverlayStyle {
   /// The [Icon] used for the close button.
   final Icon? closeIcon;
 
+  /// Whether to show the close button.
+  /// Defaults to `true`. Set to `false` to hide the close button.
+  /// Users can still dismiss the overlay by tapping outside of it.
+  final bool showCloseButton;
+
   /// The padding for the header.
   final EdgeInsets? headerPadding;
 
@@ -65,6 +70,7 @@ class MultiDayOverlayStyle {
     this.dayNameTextStyle,
     this.dateTextStyle,
     this.closeIcon,
+    this.showCloseButton = true,
     this.headerPadding,
     this.eventsPadding,
     this.eventPadding,
@@ -231,14 +237,15 @@ class MultiDayOverlay<T extends Object?> extends StatelessWidget {
                                 icon: Text(date.day.toString(), style: style?.dateTextStyle),
                               ),
                             ),
-                            Align(
-                              alignment: textDirection == TextDirection.ltr ? Alignment.topRight : Alignment.topLeft,
-                              child: IconButton.filledTonal(
-                                onPressed: portalController.hide,
-                                icon: style?.closeIcon ?? const Icon(Icons.close),
-                                key: MultiDayOverlay.getCloseButtonKey(date),
+                            if (style?.showCloseButton ?? true)
+                              Align(
+                                alignment: textDirection == TextDirection.ltr ? Alignment.topRight : Alignment.topLeft,
+                                child: IconButton.filledTonal(
+                                  onPressed: portalController.hide,
+                                  icon: style?.closeIcon ?? const Icon(Icons.close),
+                                  key: MultiDayOverlay.getCloseButtonKey(date),
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),
