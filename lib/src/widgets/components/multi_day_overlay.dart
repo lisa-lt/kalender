@@ -132,41 +132,88 @@ class MultiDayOverlay<T extends Object?> extends StatelessWidget {
     return Key('multi_day_overlay_close_button_${date.millisecondsSinceEpoch}');
   }
 
+  /// Calculates the estimated height of the overlay based on content.
+  double _estimateOverlayHeight(double headerHeight) {
+    final eventsPadding = style?.eventsPadding ?? defaultEventsPadding;
+    final eventItemPadding = style?.eventsPadding ?? defaultEventItemPadding;
+    final eventsHeight = events.length * (tileHeight + eventItemPadding.vertical);
+
+    return headerHeight +
+        defaultColumnSpacing +
+        eventsPadding.vertical +
+        eventsHeight +
+        defaultCardPadding;
+  }
+
   /// Calculates the top and left position of the overlay.
-  (double top, double left, double right) _calculatePosition(
+  /// Ensures the overlay stays within screen bounds.
+  (double top, double left, double width) _calculatePosition(
     BoxConstraints constraints,
     double headerHeight,
   ) {
     final portalRenderBox = getOverlayPortalRenderBox();
-
     final multiDayEventsLayoutRenderBox = getMultiDayEventLayoutRenderBox();
     final multiDayEventsLayoutSize = multiDayEventsLayoutRenderBox.size;
 
-    // Get the position of the portal widget.
+    // Get the position and size of the portal widget.
     final portalWidth = portalRenderBox.size.width;
+    final portalHeight = portalRenderBox.size.height;
     final portalPosition = portalRenderBox.localToGlobal(Offset.zero);
 
-    // Calculate the left and top position of the overlay.
-    // Ensure the overlay does not go off the top of the screen.
-    var top = portalPosition.dy - multiDayEventsLayoutSize.height - headerHeight;
-    if (top < 0) top = 0;
+    // Calculate the estimated overlay height for boundary checking.
+    final estimatedOverlayHeight = _estimateOverlayHeight(headerHeight);
 
-    // Calculate the left position of the overlay.
-    // Ensure the overlay does not go off the left side of the screen.
+    // Calculate the width.
     final maxWidth = _determineWidth(constraints);
+    var width = maxWidth;
+
+    // Calculate the left position, centered on the portal.
     var left = portalPosition.dx - (maxWidth / 2) + portalWidth / 2;
+
+    // Ensure the overlay does not go off the left side of the screen.
     if (left < 0) left = 0;
 
     // Ensure the overlay does not go off the right side of the screen.
-    var width = maxWidth;
     final right = left + width;
     if (right > constraints.maxWidth) {
       if (left > constraints.maxWidth - maxWidth) {
-        // If there is space on the left side, adjust the left position.
         left = constraints.maxWidth - maxWidth;
       } else {
-        // Otherwise, adjust the width to fit within the constraints.
         width = constraints.maxWidth - left;
+      }
+    }
+
+    // Calculate the top position.
+    // Default: position above the portal.
+    var top = portalPosition.dy - multiDayEventsLayoutSize.height - headerHeight;
+
+    // Check if overlay would go off the top of the screen.
+    if (top < 0) {
+      // Try positioning below the portal instead.
+      final belowPortalTop = portalPosition.dy + portalHeight;
+      final belowPortalBottom = belowPortalTop + estimatedOverlayHeight;
+
+      if (belowPortalBottom <= constraints.maxHeight) {
+        top = belowPortalTop;
+      } else {
+        // Neither works well - position at top of screen.
+        top = 0;
+      }
+    } else {
+      // Check if overlay would go off the bottom of the screen.
+      final overlayBottom = top + estimatedOverlayHeight;
+      if (overlayBottom > constraints.maxHeight) {
+        // Try positioning below the portal.
+        final belowPortalTop = portalPosition.dy + portalHeight;
+        final belowPortalBottom = belowPortalTop + estimatedOverlayHeight;
+
+        if (belowPortalBottom <= constraints.maxHeight) {
+          top = belowPortalTop;
+        } else {
+          // Position so bottom aligns with screen bottom.
+          top = constraints.maxHeight - estimatedOverlayHeight;
+          if (top < 0) top = 0;
+        }
       }
     }
 
@@ -183,6 +230,11 @@ class MultiDayOverlay<T extends Object?> extends StatelessWidget {
   }
 
   static const defaultWidth = 300.0;
+  static const defaultHeaderHeight = 80.0;
+  static const defaultColumnSpacing = 8.0;
+  static const defaultEventsPadding = EdgeInsets.all(4.0);
+  static const defaultEventItemPadding = EdgeInsets.symmetric(vertical: 2.0);
+  static const defaultCardPadding = 16.0;
 
   /// Determines the height of the header based on the constraints.
   double _determineHeaderHeight(BoxConstraints constraints) {
@@ -192,8 +244,6 @@ class MultiDayOverlay<T extends Object?> extends StatelessWidget {
       return defaultHeaderHeight;
     }
   }
-
-  static const defaultHeaderHeight = 80.0;
 
   @override
   Widget build(BuildContext context) {
