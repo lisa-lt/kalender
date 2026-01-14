@@ -56,39 +56,49 @@ class MultiDayBody<T extends Object?> extends StatelessWidget {
 
     return Stack(
       children: [
-        Scrollbar(
-          controller: viewController.scrollController,
-          child: SingleChildScrollView(
-            key: singleChildScrollViewKey,
+        // MediaQuery.removePadding is required because Flutter's Scrollbar widget
+        // internally applies MediaQuery.paddingOf(context) as padding, which accounts
+        // for system UI (notches, safe areas). This causes the scrollbar track to not
+        // extend to the top of the body. Removing the padding ensures the scrollbar
+        // aligns with the grid.
+        MediaQuery.removePadding(
+          context: context,
+          removeTop: true,
+          removeBottom: true,
+          child: Scrollbar(
             controller: viewController.scrollController,
-            physics: configuration.scrollPhysics,
-            child: SizedBox(
-              height: pageHeight,
-              child: Row(
-                children: [
-                  // The timeline is always on the left side of the page, but should not scroll with the pageview.
-                  SizedBox(height: pageHeight, child: TimeLine.fromContext<T>(context, timeOfDayRange)),
-                  Expanded(
-                    child: Stack(
-                      children: [
-                        Positioned.fill(child: HourLines.fromContext<T>(context, timeOfDayRange)),
-                        Positioned.fill(
-                          child: MultiDayPage<T>(
-                            eventsController: context.eventsController<T>(),
-                            viewController: viewController,
-                            configuration: configuration,
-                            pageHeight: pageHeight,
-                            location: context.location,
+            child: SingleChildScrollView(
+              key: singleChildScrollViewKey,
+              controller: viewController.scrollController,
+              physics: configuration.scrollPhysics,
+              child: SizedBox(
+                height: pageHeight,
+                child: Row(
+                  children: [
+                    // The timeline is always on the left side of the page, but should not scroll with the pageview.
+                    SizedBox(height: pageHeight, child: TimeLine.fromContext<T>(context, timeOfDayRange)),
+                    Expanded(
+                      child: Stack(
+                        children: [
+                          Positioned.fill(child: HourLines.fromContext<T>(context, timeOfDayRange)),
+                          Positioned.fill(
+                            child: MultiDayPage<T>(
+                              eventsController: context.eventsController<T>(),
+                              viewController: viewController,
+                              configuration: configuration,
+                              pageHeight: pageHeight,
+                              location: context.location,
+                            ),
                           ),
-                        ),
-                        PositionedTimeIndicator<T>(
-                          viewController: viewController,
-                          initialPage: viewController.initialPage,
-                        ),
-                      ],
+                          PositionedTimeIndicator<T>(
+                            viewController: viewController,
+                            initialPage: viewController.initialPage,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
